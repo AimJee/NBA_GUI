@@ -320,7 +320,7 @@ def GUI():
     # Third title and fourth one and place it
     Title_Stats01a3 = tk.Label(
         Stats01a, 
-        text="Write a text in the #9fd3e0 box and then press 'Search', please use the scrollbar to see all the stats available!",
+        text="Write a text in the box and then press 'Search', please use the scrollbar to see all the stats available!",
         font=("Verdana", 7, "italic"))
     Title_Stats01a4 = tk.Label(
         Stats01a, 
@@ -398,7 +398,7 @@ def GUI():
     # Third title and fourth one and place it
     Title_Stats01b3 = tk.Label(
         Stats01b, 
-        text="Write a text in the #9fd3e0 box and then press 'Search', please use the scrollbar to see all the stats available!",
+        text="Write a text in the box and then press 'Search', please use the scrollbar to see all the stats available!",
         font=("Verdana", 7, "italic"))
     Title_Stats01b4 = tk.Label(
         Stats01b, 
@@ -553,6 +553,18 @@ def GUI():
         Sub_Frame7, text="Update list", font=("Verdana", 9),
         command=lambda: update_tree_teams(tree_teams))
     Update_button3.place(x=30, y=10, width=150, height=30)
+    
+    Title_Stats01c3 = tk.Label(
+        
+        Stats01c, 
+        text="Write a text in the box and then press 'Search', please use the scrollbar to see all the stats available!",
+        font=("Verdana", 7, "italic"))
+    Title_Stats01c4 = tk.Label(
+        Stats01c, 
+        text="To reset the dataframe, leave the box empty and press 'Search'",
+        font=("Verdana", 7, "italic"))
+    Title_Stats01c3.place(x=0, y= 160, width=width_700, height=15)
+    Title_Stats01c4.place(x=0, y= 180, width=width_700, height=15)
 
     # update the file
     def update_tree_teams(tree):

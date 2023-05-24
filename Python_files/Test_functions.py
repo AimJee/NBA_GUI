@@ -17,13 +17,12 @@ def simulate_money(Year_predicted, Long, Short, num_sims, seed=0):
     gurations is 3*len(long)*len(short).
     seed = the random seed. It's a constant for comparaison purposes
     
-    The function uses the Quotes to simulate how much money the player would
-    have won following the different configurations. The Quotes are extracted
-    from a CSV. It was created using the function "Load_quotes.py"
+    The function uses the odds to simulate how much money the player would
+    have won following the different configurations. The odds are extracted
+    from a CSV. It was created using the function "Load_odds.py"
     Here it's used for example purposes but it's not directly inplanted in the
     project.
     """
-    
     current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
     # Set the seed value
     np.random.seed(seed)  
@@ -38,20 +37,31 @@ def simulate_money(Year_predicted, Long, Short, num_sims, seed=0):
     data_to_use1 = data_to_use1.reset_index()
     data_to_use1 = data_to_use1.set_index(["team_name", "match_num"])    
         
-    # Find the 2023 quotes and merge it with the data_to_use1
-    # We end up with the quotes with the right index
-    quotes = pd.read_csv(current_directory + "/CSV_files/Quotes.csv")
-    quotes[["match_num", "team_name"]] = quotes[["Match_num", "Team_name"]]
-    quotes = quotes.replace("Los Angeles Clippers", value="LA Clippers")
-    quotes = quotes.drop(["Match_num", "Team_name"], axis=1)
-    quotes = quotes[["match_num", "team_name", 
+    # Find the 2023 odds and merge it with the data_to_use1
+    # We end up with the odds with the right index
+    odds = pd.read_csv(current_directory + "/CSV_files/odds.csv")
+    odds = odds.replace("Los Angeles Clippers", "LA Clippers")
+    odds[["match_num", "team_name"]] = odds[["Match_num", "Team_name"]]
+    odds = odds.drop(["Match_num", "Team_name"], axis=1)
+    odds = odds[["match_num", "team_name", 
                      "Money Line", "Location"]].set_index(
                          ["team_name", "match_num"])
-    quotes = quotes.replace(["Home", "Away"], value=[1, 0])
-    quotes_df = quotes.merge(data_to_use1, left_index=True, 
-                             right_index=True, how="left")
-    quotes_df = quotes_df.set_index(["index"]).sort_index()
+    odds = odds.replace(["Home", "Away"], value=[1, 0])
+    odds_df = odds.merge(data_to_use1, left_index=True, 
+                             right_index=True, how='right')
+    odds_df = odds_df.set_index(["index"]).sort_index()
+    temp = odds_df[odds_df["Location"]==1].drop("Location", axis=1)
+    temp2 = odds_df[odds_df["Location"]==0].drop("Location", axis=1)
+    temp.columns = ["Money Line Home"]
+    temp2.columns = ["Money Line Away"]
+    odds_df = pd.concat([temp, temp2], axis=1)
     Money_df_list = []
+    if temp.index.equals(temp2.index):
+        print("df1 and df2 share the same index.")        
+    else:
+            index_diff = temp.index.difference(temp2.index)
+            print("df1 and df2 have different indexes:")
+            print(index_diff)
     # Find parameters of last 3 years individually
     for i in range(int(Year_predicted)-3, int(Year_predicted), 1):
         Money = []
@@ -66,8 +76,6 @@ def simulate_money(Year_predicted, Long, Short, num_sims, seed=0):
             # Limits
             Upper = np.random.uniform(0.5, 1)
             Lower = np.random.uniform(0, 0.5)
-            Upper = 0.5
-            Lower = 0.5
             Predicts = Predicts_clean.copy()    
             # go to closest integer
             Predicts[(Predicts<Lower)] = 0
@@ -75,28 +83,32 @@ def simulate_money(Year_predicted, Long, Short, num_sims, seed=0):
             Predicts[((Predicts<=Upper) & (Predicts>=Lower))] = np.nan
             
             new_col = []
-            
-            for k, val in enumerate(Predicts):
+            Ind_pre = Predicts.index
+            for index, value in enumerate(Predicts):
                 try:
                     # If we didnt bet then we get 0
-                    if np.isnan(val):
+                    if np.isnan(value):
                         new_col.append(0)
-                    # If the bet is won then we get the quotes minus 1
-                    elif val == Matches[1].iloc[k]:
-                        new_col.append(quotes_df[
-                            quotes_df["Location"]==val].loc[
-                                Predicts.index[k]]["Money Line"]-1)
+                    # If the bet is won then we get the odds minus 1
+                    elif value == Matches[1].loc[Ind_pre[index]]:
+                        if value == 1:
+                            new_col.append(
+                                odds_df.loc[Ind_pre[index]]["Money Line Home"]-1)
+                        else:
+                            new_col.append(
+                                odds_df.loc[Ind_pre[index]]["Money Line Away"]-1)
                     # If we only want the result and not the quote
                     # elif val == y_result[k]:
                         # new_col.append(1)
                     # If the result is not available then we get 0
-                    elif np.isnan(Matches[1].iloc[k]) == np.nan:
+                    elif np.isnan(Matches[1].loc[Ind_pre[index]]) == np.nan:
                         new_col.append(0)
                     # If we lose then we lose our bet
                     else:
                         new_col.append(-1)
                 except:
-                    print(Predicts.index[k])
+                    print(Ind_pre[index])
+                    
             
             # Count the bet won/lost
             won = np.sum(np.array(new_col)>0)

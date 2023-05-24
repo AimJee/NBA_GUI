@@ -5,6 +5,7 @@ import numpy as np
 from Test_functions import simulate_money, simulate_accuracy
 import multiprocessing as mp
 import matplotlib.pyplot as plt
+import os 
 
 def graphics_money_ranks(dfs, Long, Short):
     """
@@ -117,12 +118,12 @@ def graphics_money_ranks(dfs, Long, Short):
     # Set the x-axis tick labels
     ax.set_xticklabels(labels, rotation="vertical")
     ax2.set_xticklabels(labels, rotation="vertical")
+    plt.savefig(current_directory + "/Tests/box_plot_money.png")
+    plt.savefig(current_directory + "/Tests/box_plot_accuracy.png")
     plt.show()
     # Create a figure and axis for scatter plot
     fig, ax3 = plt.subplots(3, 6, figsize=(15, 10))
     fig.suptitle("Scatter Plots")
-    
-    
     
     # list of money to find min and max
     money_list = []
@@ -175,7 +176,7 @@ def graphics_money_ranks(dfs, Long, Short):
     cbar.set_label("Money")
     # Space between graph
     fig.subplots_adjust(left=0.05, right=0.88, bottom=0.08, top=0.9, wspace=0.25, hspace=0.4)
-
+    plt.savefig(current_directory + "/Tests/scatter_plots.png")
     # Show the plot
     plt.show()
     
@@ -225,13 +226,16 @@ def Accuracy_parallel(Year_predicted, Long, Short):
     plt.xticks(counts_df.index, rotation="vertical")
     plt.title(str(Year_predicted) + ": Models VS Accurancy")
     plt.ylabel("Accurancy in %")
+    plt.savefig(current_directory + "/Tests/accuracy.png")
     plt.show()
+    
     return counts_df, df_params
 
 if __name__ == "__main__":
     """
     Run the code to create the graphics and the different tests
     """
+    current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
     start = time.time()
     # Parameters
     predicted_year = 2023
@@ -246,7 +250,7 @@ if __name__ == "__main__":
     
     # Not taking into account the odds but only the predictions %
     accurancy_df = Accuracy_parallel(predicted_year, long_values, short_values)
-    time.sleep(1)
+    time.sleep(3)
     print("Run time: ", time.time()-start)
     
 

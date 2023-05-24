@@ -314,6 +314,7 @@ def load_matches(Season: int, Debut_date: datetime, End_date: datetime):
                         month = date[1].split(" ")[0]
                         month = int(list(calendar.month_abbr).index(month))
                         day = int(date[1].split(" ")[1])
+                        # No need of passed data
                         # We need the match of tomorrow to predict but not after
                         if datetime.datetime(year, month, day) > datetime.timedelta(days=1) + End_date:
                             break
@@ -419,15 +420,14 @@ def load_matches(Season: int, Debut_date: datetime, End_date: datetime):
         
         # Load original data to keep the same parameters 
         df_ori = pd.read_csv(relative_path + "/game.csv")
-        
+        df_ori = df_ori.dropna(subset=["season_id"])
         new_data = data
         
         # Dict to go from name to id and abbreviation
         team_id_dict = {}
         for i in df_ori["team_name_home"].unique():
-            team_id_dict[i] = (df_ori[df_ori["team_name_home"]==i].iloc[0,1],
-                               df_ori[df_ori["team_name_home"]==i].iloc[0,2])
-        
+            team_id_dict[i] = (df_ori[df_ori["team_name_home"]==i].iloc[0, 1],
+                               df_ori[df_ori["team_name_home"]==i].iloc[0, 2])
         # Season id
         season_id = len(new_data)*[Season-1]
         
@@ -441,12 +441,14 @@ def load_matches(Season: int, Debut_date: datetime, End_date: datetime):
         game_id = []
         game_date = []
         
+        
         # To keep a trace
         df_cut = df_ori.copy()
         # Drop the data after the End_date
         # This is useful to get rid of the duplicates and also if 
         # we want to try the database "back in time" 
-        df_cut["game_date"] = pd.to_datetime(df_cut["game_date"], format="%d/%m/%Y")   
+        df_cut["game_date"] = pd.to_datetime(df_cut["game_date"], 
+                                             format="%d/%m/%Y")   
         df_cut = df_cut[df_cut["game_date"] < Debut_date]
         # Get the index of old df to continue in new df
         index_Organized = []
@@ -587,7 +589,7 @@ def load_matches(Season: int, Debut_date: datetime, End_date: datetime):
              "team_abbreviation_home": team_abbreviation_home,
              "team_name_home": team_name_home,
              "game_id": np.int32(game_id),
-             "game_date": pd.Series(game_date).dt.strftime('%d/%m/%Y'),
+             "game_date": pd.to_datetime(pd.Series(game_date)).dt.strftime('%d/%m/%Y'),
              "wl_home": wl_home,
              "min": np.longlong(minutes),
              "fgm_home": np.longlong(fgm_home),
@@ -682,7 +684,7 @@ def Data_predictions(Entry_season, Length_long=20, Length_short=3):
     3rd and 4th dfs are copies of the 1st and 2nd ones but dont include the
     nan data so it's usable right away to predict. The result_vector also 
     dropped the result for which we had nan data. Finally the 5th df is the 
-    Matches_list, it's the df_all. It's useful to find the quotes later on
+    Matches_list, it's the df_all. It's useful to find the odds later on
     """
     
     # read file and only take the season we need
@@ -925,7 +927,7 @@ def Data_predictions2(Entry_season, Length_long=20, Length_short=3):
     3rd and 4th dfs are copies of the 1st and 2nd ones but dont include the
     nan data so it's usable right away to predict. The result_vector also 
     dropped the result for which we had nan data. Finally the 5th df is the 
-    Matches_list, it's the df_all. It's useful to find the quotes later on
+    Matches_list, it's the df_all. It's useful to find the odds later on
     """
     # read file and only take the season we need
     df_games = pd.read_csv(relative_path + "/game.csv")
