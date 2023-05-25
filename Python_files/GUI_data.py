@@ -17,7 +17,6 @@ import statsmodels.api as sm
 import os
 
 
-
 def Stats_Seasons():
     """
     This function is used to scratch data from a website.

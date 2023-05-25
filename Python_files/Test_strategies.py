@@ -238,10 +238,10 @@ if __name__ == "__main__":
     start = time.time()
     # Parameters
     predicted_year = 2023
-    long_values = [20, 30, 40, 50]
-    short_values = [3, 5, 10, 20]
+    long_values = [30, 40, 50]
+    short_values = [10, 20, 30]
     random_seed = 0
-    num_sims = 1000
+    num_sims = 5000
     # How the models behave with the odds
     money_results = Money_parallel(predicted_year, long_values, 
                                    short_values, random_seed) 

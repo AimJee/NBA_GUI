@@ -64,7 +64,7 @@ def simulate_money(Year_predicted, Long, Short, num_sims, seed=0):
         Money = []
         # Data to get and regress
         x, y, data = get_year_data(i, Long, Short)
-        Regr_result = sm.Logit(y, x).fit("HC3")
+        Regr_result = sm.Logit(y, x).fit()
         Predicts_clean = Regr_result.predict(Matches[0])
         Cols_name.append(i)
         # Each year are comparable
@@ -138,9 +138,11 @@ def simulate_accuracy(Year_predicted, Long, Short):
         _, _, Matches = get_year_data(Year_predicted, Long, Short)    
         # Data to get and regress
         x, y, data = get_year_data(k, Long, Short)
-        Regr_result = sm.Logit(y, x).fit("HC3")
+        Regr_result = sm.Logit(y, x).fit(cov_type="HC3")
+        
         # Perform White's test for heteroscedasticity
         # white_test = het_white(Regr_result.resid_dev, Regr_result.model.exog)
+        
         Parameters.append(Regr_result.params)
         Names = Matches[0].columns.tolist()
         # Save result
@@ -148,9 +150,10 @@ def simulate_accuracy(Year_predicted, Long, Short):
                   str(Long) + "_" + str(Short) + ".txt", 'w') as f:
             f.write(Regr_result.summary(
                 xname=Names).as_text())
-        with open(current_directory + '/Tests/het_white_result_' + str(k) + \
-                  '_' + str(Long) + '_' + str(Short) + '.txt', 'w') as f:
-            f.write("HetWhite Test Result\n")
+            
+        #with open(current_directory + '/Tests/het_white_result_' + str(k) + \
+        #          '_' + str(Long) + '_' + str(Short) + '.txt', 'w') as f:
+        #    f.write("HetWhite Test Result\n")
             #f.write("LM Statistic: {}\n".format(white_test[0]))
             #f.write("LM-Test p-value: {}\n".format(white_test[1]))
             #f.write("F-Statistic: {}\n".format(white_test[2]))
