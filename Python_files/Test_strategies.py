@@ -103,6 +103,7 @@ def graphics_money_ranks(dfs, Long, Short):
     for i, df in enumerate(dfs):
         # Extract the "Money" and "Accuracy" columns
         df["Total"] = df["Won"] + df["Lost"]
+        # Dont take into account if not played enough
         df = df[df["Total"] > 30]
         money_data = df["Money"]
         accuracy_data = df["%wl"]
@@ -131,7 +132,8 @@ def graphics_money_ranks(dfs, Long, Short):
     for i, df in enumerate(dfs):
         # Extract the "Money" column
         df["Total"] = df["Won"] + df["Lost"]
-        df = df[df["Total"] > 30]
+        # 5 games as we look for money
+        df = df[df["Total"] > 5]
         df = df[df["Money"] > 0]
         money = df["Money"]
         # used to find min and max of cmap
@@ -148,7 +150,7 @@ def graphics_money_ranks(dfs, Long, Short):
             df = dfs[(i + Size*j)]
             # Create a figure and axis for scatter plot
             df["Total"] = df["Won"] + df["Lost"]
-            df = df[df["Total"] > 30]
+            df = df[df["Total"] > 5]
             df = df[df["Money"] > 0]
             x = df["Upper"]
             y = df["Lower"]
@@ -254,10 +256,10 @@ if __name__ == "__main__":
     start = time.time()
     # Parameters
     predicted_year = 2023
-    long_values = [30, 40, 50]
-    short_values = [10, 20, 30]
+    long_values = [20, 30, 40, 50]
+    short_values = [5, 10, 20]
     random_seed = 0
-    num_sims = 5000
+    num_sims = 10000
     # How the models behave with the odds
     money_results = Money_parallel(predicted_year, long_values, 
                                    short_values, num_sims, random_seed) 

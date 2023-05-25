@@ -192,8 +192,8 @@ def simulate_accuracy(Year_predicted, Long, Short):
                           axis=1, keys=["Ones", "Zeros"])
     # total bet 
     counts_df["Sum"] = counts_df["Ones"] + counts_df["Zeros"]
-    # Accurancy of betting
-    counts_df["Accurancy"] = counts_df["Ones"]/counts_df["Sum"]
+    # Accuracy of betting
+    counts_df["Accuracy"] = counts_df["Ones"]/counts_df["Sum"]
     
     
     # Find the money won with the standard models
