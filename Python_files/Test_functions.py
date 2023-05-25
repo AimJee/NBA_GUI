@@ -3,7 +3,6 @@ import pandas as pd
 import statsmodels.api as sm
 from GUI_data import get_year_data
 import os
-import matplotlib.pyplot as plt
 
 def simulate_money(Year_predicted, Long, Short, num_sims, seed=0):
     """
@@ -226,17 +225,15 @@ def simulate_accuracy(Year_predicted, Long, Short):
     temp.columns = ["Money Line Home"]
     temp2.columns = ["Money Line Away"]
     odds_df = pd.concat([temp, temp2], axis=1)
-    Money_df_list = []
-
+    Money_df = pd.DataFrame()
     # Find parameters of last 3 years individually
     for i in range(int(Year_predicted)-3, int(Year_predicted), 1):
+        Money = []
         # Data to get and regress
         x, y, data = get_year_data(i, Long, Short)
         Regr_result = sm.Logit(y, x).fit()
         Predicts = Regr_result.predict(Matches[0])
         # Each year are comparable
-        # Limits
-        
         # go to closest integer
         Predicts[(Predicts<0.5)] = 0
         Predicts[(Predicts>=0.5)] = 1
@@ -267,18 +264,10 @@ def simulate_accuracy(Year_predicted, Long, Short):
             except:
                 print(Ind_pre[index])
                     
-            # into the list
-            Money_df_list.append(sum(new_col))
-    # plot 
-    y_data = Money_df_list
-    x_data = Cols_name
-    
-    plt.scatter(range(len(x_data)), y_data)
-    plt.xticks(range(len(x_data)), x_data)
-    plt.xlabel('Models')
-    plt.ylabel('Money')
-    plt.title('Scatter Plot of Money won')
-    plt.savefig(current_directory + "/Tests/Graph_money")
-    plt.show()
-    return counts_df, df_params
+        # into the list
+        Money.append(sum(new_col))
+        Money_df = pd.concat([Money_df, pd.DataFrame(Money)])
+    Money_df.index = Cols_name
+   
+    return counts_df, df_params, Money_df
 

@@ -215,20 +215,36 @@ def Accuracy_parallel(Year_predicted, Long, Short):
     
     # Concatenate the results
     current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
-    counts_df, df_params = zip(*results)
+    counts_df, df_params, money_df = zip(*results)
     counts_df = pd.concat(counts_df)
     df_params = pd.concat(df_params, axis=1)
-    counts_df = counts_df.sort_values("Accurancy")
+    counts_df_ord = counts_df.sort_values("Accuracy")
+    money_df = pd.concat(money_df)
     
     # Graphic
     plt.figure(figsize=(15, 10))
-    plt.plot(counts_df.index, counts_df["Accurancy"]*100)
-    plt.xticks(counts_df.index, rotation="vertical")
-    plt.title(str(Year_predicted) + ": Models VS Accurancy")
-    plt.ylabel("Accurancy in %")
+    plt.plot(counts_df_ord.index, counts_df_ord["Accuracy"]*100)
+    plt.xticks(counts_df_ord.index, rotation="vertical")
+    plt.title(str(Year_predicted) + ": Models VS Accuracy")
+    plt.ylabel("Accuracy in %")
     plt.savefig(current_directory + "/Tests/Graphs_accuracy.png", dpi=300)
     plt.show()
-    
+    # Graphic
+    plt.figure(figsize=(15, 10))
+    plt.scatter(money_df.index, money_df)
+    plt.xticks(money_df.index, rotation="vertical")
+    plt.title(str(Year_predicted) + ": Models VS Money")
+    plt.ylabel("Money")
+    plt.savefig(current_directory + "/Tests/Graphs_money.png", dpi=300)
+    plt.show()
+    # Graphic
+    plt.figure(figsize=(15,10))
+    plt.scatter(counts_df["Accuracy"]*100, money_df)
+    plt.title(str(Year_predicted) + ": Accuracy VS Money")
+    plt.ylabel("Money")
+    plt.xlabel("Accuracy")
+    plt.savefig(current_directory + "/Tests/Graphs_relation_money_accuracy.png", dpi=300)
+    plt.show()
     return counts_df, df_params
 
 if __name__ == "__main__":
@@ -248,7 +264,7 @@ if __name__ == "__main__":
     graphics_money_ranks(money_results, long_values, short_values)
     
     # Not taking into account the odds but only the predictions %
-    accurancy_df = Accuracy_parallel(predicted_year, long_values, short_values)
+    Accuracy_df = Accuracy_parallel(predicted_year, long_values, short_values)
     print("Run time: ", time.time()-start)
     
 
