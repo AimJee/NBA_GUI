@@ -4,8 +4,6 @@ from bs4 import BeautifulSoup
 import numpy as np
 import os
 
-current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
-relative_path = os.path.join(current_directory, 'CSV_files')
 
 def load_odds():
     """
@@ -13,6 +11,8 @@ def load_odds():
     CARE !!!!!
     You have to manually change in the CSV file the Neutral grounds of some matches.
     """
+    current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
+    relative_path = os.path.join(current_directory, 'CSV_files')
     # Team name
     original_array = np.array(
         ['Atlanta Hawks', 'Boston Celtics', 'Brooklyn Nets', 'Charlotte Hornets',

@@ -22,7 +22,7 @@ def simulate_money(Year_predicted, Long, Short, num_sims, seed=0):
     from a CSV. It was created using the function "Load_odds.py"
     Here it's used for example purposes but it's not directly inplanted in the
     project.
-    """
+    """ 
     current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
     # Set the seed value
     np.random.seed(seed)  
@@ -34,13 +34,15 @@ def simulate_money(Year_predicted, Long, Short, num_sims, seed=0):
     data_to_use1 = Matches[4].sort_values(
         by=["team_name", "match_num"]).drop(["game_date", "home_team", "game_id"], 
                                             axis=1)
+    
     data_to_use1 = data_to_use1.reset_index()
     data_to_use1 = data_to_use1.set_index(["team_name", "match_num"])    
         
+    
     # Find the 2023 odds and merge it with the data_to_use1
     # We end up with the odds with the right index
     odds = pd.read_csv(current_directory + "/CSV_files/odds.csv")
-    odds = odds.replace("Los Angeles Clippers", "LA Clippers")
+    odds["Team_name"].unique()
     odds[["match_num", "team_name"]] = odds[["Match_num", "Team_name"]]
     odds = odds.drop(["Match_num", "Team_name"], axis=1)
     odds = odds[["match_num", "team_name", 
@@ -56,18 +58,13 @@ def simulate_money(Year_predicted, Long, Short, num_sims, seed=0):
     temp2.columns = ["Money Line Away"]
     odds_df = pd.concat([temp, temp2], axis=1)
     Money_df_list = []
-    if temp.index.equals(temp2.index):
-        print("df1 and df2 share the same index.")        
-    else:
-            index_diff = temp.index.difference(temp2.index)
-            print("df1 and df2 have different indexes:")
-            print(index_diff)
+
     # Find parameters of last 3 years individually
     for i in range(int(Year_predicted)-3, int(Year_predicted), 1):
         Money = []
         # Data to get and regress
         x, y, data = get_year_data(i, Long, Short)
-        Regr_result = sm.Logit(y, x).fit(cov_type="HC3")
+        Regr_result = sm.Logit(y, x).fit("HC3")
         Predicts_clean = Regr_result.predict(Matches[0])
         Cols_name.append(i)
         # Each year are comparable
@@ -132,25 +129,32 @@ def simulate_accuracy(Year_predicted, Long, Short):
     """
     Test the accuracy of the 18 models 
     """
-    current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
-    # Cols name
     Cols_name = []
     Predictions = []
     Parameters = []
-    
+    current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
     for k in range(int(Year_predicted)-3, int(Year_predicted), 1):
         # Data of predicted year
         _, _, Matches = get_year_data(Year_predicted, Long, Short)    
         # Data to get and regress
         x, y, data = get_year_data(k, Long, Short)
-        Regr_result = sm.Logit(y, x).fit(cov_type="HC3")
+        Regr_result = sm.Logit(y, x).fit("HC3")
+        # Perform White's test for heteroscedasticity
+        # white_test = het_white(Regr_result.resid_dev, Regr_result.model.exog)
         Parameters.append(Regr_result.params)
         Names = Matches[0].columns.tolist()
-        
+        # Save result
         with open(current_directory + '/Tests/regression_summary_' + str(k) + "_" + \
                   str(Long) + "_" + str(Short) + ".txt", 'w') as f:
             f.write(Regr_result.summary(
                 xname=Names).as_text())
+        with open(current_directory + '/Tests/het_white_result_' + str(k) + \
+                  '_' + str(Long) + '_' + str(Short) + '.txt', 'w') as f:
+            f.write("HetWhite Test Result\n")
+            #f.write("LM Statistic: {}\n".format(white_test[0]))
+            #f.write("LM-Test p-value: {}\n".format(white_test[1]))
+            #f.write("F-Statistic: {}\n".format(white_test[2]))
+            #f.write("F-Test p-value: {}\n".format(white_test[3]))     
         
         # Only predicts if data is not nan
         Predicts = Regr_result.predict(Matches[0])

@@ -16,8 +16,7 @@ import threading
 import statsmodels.api as sm
 import os
 
-current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
-relative_path = os.path.join(current_directory, 'CSV_files')
+
 
 def Stats_Seasons():
     """
@@ -26,7 +25,8 @@ def Stats_Seasons():
     to run this function every time
     First we ask the user if he wants to update the file with a yes_no
     """
-    
+    current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
+    relative_path = os.path.join(current_directory, 'CSV_files')
     # yes or no question
     answer = askyesno(title="Update Seasons list ?",
                       message="Do you want to update the seasons list ?")
@@ -62,7 +62,8 @@ def Stats_Players():
     
     answer = askyesno(title="Update Players list ?",
                       message="Do you want to update the players list ? It may take 2 minutes.")
-    
+    current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
+    relative_path = os.path.join(current_directory, 'CSV_files')
     # If you want to update :
     if answer == True:
         
@@ -145,7 +146,8 @@ def Stats_Teams():
     to run this function every time
     First we ask the user if he wants to update the file with a yes_no 
     """
-    
+    current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
+    relative_path = os.path.join(current_directory, 'CSV_files')
     answer = askyesno(title="Update teams list ?",
                       message="Do you want to update the teams list ?")
     if answer == True:
@@ -221,7 +223,8 @@ def load_matches(Season: int, Debut_date: datetime, End_date: datetime):
     running, the function uses threading. This is why the function scratching
     has been created
     """
-    
+    current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
+    relative_path = os.path.join(current_directory, 'CSV_files')
     start_time = time.time()
     # Progress window and text
     progress_window = tk.Toplevel()
@@ -686,7 +689,9 @@ def Data_predictions(Entry_season, Length_long=20, Length_short=3):
     dropped the result for which we had nan data. Finally the 5th df is the 
     Matches_list, it's the df_all. It's useful to find the odds later on
     """
-    
+    current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
+    relative_path = os.path.join(current_directory, 'CSV_files')
+
     # read file and only take the season we need
     df_games = pd.read_csv(relative_path + "/game.csv")
     df_games = df_games[df_games["season_id"] == Entry_season-1]
@@ -829,7 +834,8 @@ def Predict_df(Year_predicted, Long=10, Short=5, Upper_B=0.5, Lower_B=0.5):
     some informations are added. Also the column "together" is a column used
     to give predictions based on the result of the 3 years.
     """
-    
+    current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
+    relative_path = os.path.join(current_directory, 'CSV_files')
     answer = askyesno(title="Predictions?",
                       message="Do you want to predict the outcomes ? It could take up to 1 min")
 
@@ -838,7 +844,7 @@ def Predict_df(Year_predicted, Long=10, Short=5, Upper_B=0.5, Lower_B=0.5):
         # Cols name
         Cols_name = []
         # Predictions based on 3 individual years
-        Predictions = []
+        df = pd.DataFrame()
         # Data of predicted year
         Data_to_use, y_result, Matches = get_year_data(Year_predicted, Long, Short)    
         
@@ -848,7 +854,7 @@ def Predict_df(Year_predicted, Long=10, Short=5, Upper_B=0.5, Lower_B=0.5):
             x, y, data = get_year_data(i, Long, Short)
             Regr_result = sm.Logit(y, x).fit(cov_type="HC3")
             # Only predicts if data is not nan
-            Predicts = Regr_result.predict(Data_to_use)
+            Predicts = Regr_result.predict(Matches[0])
             Cols_name.append(i)
             # Limits
             Upper = Upper_B
@@ -857,21 +863,18 @@ def Predict_df(Year_predicted, Long=10, Short=5, Upper_B=0.5, Lower_B=0.5):
             Predicts[(Predicts<Lower)] = 0
             Predicts[(Predicts>Upper)] = 1
             Predicts[((Predicts<=Upper) & (Predicts>=Lower))] = np.nan
-            Predictions.append(Predicts)
+            df = pd.concat([df, Predicts], axis=1)
     
         # into a df
-        df = pd.DataFrame(Predictions).T
         df.columns = Cols_name
-        df.index = Matches[3].index
-        # some data have to be add back
-        removed = Matches[1].index.difference(Matches[3].index)
-        df_missing = pd.DataFrame(columns= Cols_name, index=removed)
-        df = pd.concat([df, df_missing]).sort_index()
+        df.index = Matches[0].index
+        
         # add more information
         df_comp = pd.read_csv(relative_path + "/game.csv")
         df_comp = df_comp[df_comp["season_id"]==Year_predicted-1][
             ["team_abbreviation_home", "team_abbreviation_away", "game_date"]]
         df = pd.concat([df_comp, df], axis=1).reset_index()
+        
         df.columns = ["Index", "Home", "Away", "Game Date"] + Cols_name
         # row counts
         df["count1"] = (df[Cols_name] == 1).sum(axis=1)
@@ -898,160 +901,3 @@ def get_year_data(year, Long, Short):
     x = np.asarray(data[2], dtype=float)
     y = np.asarray(data[3])
     return x, y, data
-
-def Data_predictions2(Entry_season, Length_long=20, Length_short=3):
-    """
-    Entry season is the season we want to predict the outcomes.
-    Length_long is the len of the moving average used for some parameters
-    Length_short is the len of the moving average used for some parameters
-    This function is used to create the data used for the regressions.
-    First we only have the matches on a matches POV, meaning that we have
-    the lists of all matches and its datas/statistics but we need to calculate
-    the moving averages of each team. So we need to work around the data 
-    to display it in the format we need. 
-    First we are creating 2 dataframes from the original one, the first one
-    is the stats of the away teams, the second the stats of the home team
-    Then they are merged together. So of the orginal dataframe have 20 matches
-    the away df would have also 20 matches but only showing the stats of the 
-    away teame. Same idea for the df_home. In the end the merged df (df_all)
-    is twice as long (40 games in this case). 
-    After creating df_all, we loop through each team to find the Moving average
-    of each team at a certain point in time. If the Mavs played 27 games,
-    we find the moving average of the games 8 to 27.
-    If we need to predict the output of away team game 28, we need to find
-    the moving average of away team game 27. Same idea applies to home team.
-    The second loop is doing that task, it finds the MAs of the previous match
-    find their difference and return 5 df.
-    The first one is the complete df of the difference between the MA, so it
-    includes nan data. The second one is the complete df of the result.
-    3rd and 4th dfs are copies of the 1st and 2nd ones but dont include the
-    nan data so it's usable right away to predict. The result_vector also 
-    dropped the result for which we had nan data. Finally the 5th df is the 
-    Matches_list, it's the df_all. It's useful to find the odds later on
-    """
-    # read file and only take the season we need
-    df_games = pd.read_csv(relative_path + "/game.csv")
-    df_games = df_games[df_games["season_id"] == Entry_season-1]
-    
-    # we drop the linearly dependent columns : fg, fg3, ft, reb, pts
-    df_games = df_games.drop(
-        ["fg_pct_away", "fg_pct_home", "fg3_pct_away", "fg3_pct_home", "ft_pct_away",
-         "ft_pct_home", "reb_away", "reb_home", "pts_away", "pts_home", "min", 
-         "fgm_away", "fgm_home", "fta_away", "fta_home",
-         "ftm_away", "ftm_home", "fg3a_away", "fg3a_home", "fg3m_away",
-         "fg3m_home", "oreb_home", "oreb_away", "dreb_away", "dreb_home",
-         "ast_away", "ast_home", "stl_home", "stl_away", "blk_home", "blk_away",
-         "tov_home", "tov_away", "pf_home", "pf_away"],
-        axis=1)
-
-    
-    # away df
-    df_away = df_games[
-        ["season_id", "game_id", "game_date", 'team_id_away',
-         'team_abbreviation_away', 'team_name_away', 'wl_away', "fga_away"
-         ]].copy()
-    
-    # home df
-    df_home = df_games[
-        ["season_id", "game_id", "game_date", 'team_id_home',
-         'team_abbreviation_home', 'team_name_home', 'wl_home', "fga_home"
-         ]].copy()
-    
-    # adding information of the team being home or away
-    df_away["home_team"] = np.zeros(len(df_away))
-    df_home["home_team"] = np.ones(len(df_home))
-    
-    # global new names as the fact of being away or home is inside "home" col.
-    cols_name = ["season_id", "game_id", "game_date", "team_id",
-                 "team_abbreviation", "team_name", "wl", "fga", "home_team"]
-    df_away.columns = cols_name
-    df_home.columns = cols_name
-    
-    # new df where we have all the matches from a team perspective
-    df_all = pd.concat([df_away, df_home])
-    # from string to 1 and 0
-    df_all["wl"] = df_all["wl"].replace(["W", "L"], [1, 0])
-    # list of team's name
-    team_list = df_all["team_name"].unique()
-    
-    # loop through each team to get their Moving average
-    MA_dict = {}
-    Matches_list = pd.DataFrame()
-    cols_ma_long = ["fga"]
-    cols_ma_short = ["home_team"]
-    
-    for i in team_list:
-        # temp df
-        temp_df = df_all[df_all["team_name"] == i]
-        temp_df = temp_df.sort_values(by="game_id")
-        # column of % of win looses and column of matches played
-        temp_df.insert(0, "match_num", range(1, 1 + len(temp_df)))
-        temp_df.insert(len(temp_df.columns), "perc_w_l", 
-                       temp_df["wl"].cumsum()/temp_df["match_num"])
-        
-        temp_df = temp_df.drop("wl", axis=1)
-        # MA of two length
-        temp = temp_df[cols_ma_long].rolling(Length_long).mean()
-        temp = pd.merge(temp, temp_df[cols_ma_short].rolling(Length_short).mean(),
-                        left_index=True, right_index=True)
-        
-        # merge the temp_df execpt what we used + the MA
-        MA_dict[i] = pd.merge(
-            temp_df.loc[:, ~temp_df.columns.isin(cols_ma_long+cols_ma_short)], temp,
-            left_index=True, right_index=True)
-        MA_dict[i] = pd.merge(
-            temp_df["home_team"], MA_dict[i], left_index=True, right_index=True)
-        Matches_list = pd.concat((Matches_list, temp_df[[
-            "match_num", "game_id", "game_date", "team_name", "home_team"]]))
-    
-    # Sort by game_id and then by home_x
-    Matches_list = Matches_list.sort_values(by=["game_id", "home_team"])
-    # Predict
-    Predictions_data = pd.DataFrame(
-        columns=cols_ma_long+cols_ma_short)
-
-    for i in range(0, len(Matches_list), 2):
-        # condition for predicting, we need Lenght long matches
-        cond1 = Matches_list["match_num"].iloc[i] > Length_long
-        cond2 = Matches_list["match_num"].iloc[i+1] > Length_long
-    
-        if cond1 == True and cond2 == True:
-            # find the MA of the previous match for the match incoming
-            # You need the MA of the 20th match to predict match 21
-            temp = MA_dict[Matches_list["team_name"].iloc[i]]
-            # quick fix, cant find why it happens
-            temp['home_team'] = temp['home_team_y']
-            temp = temp.drop(["home_team_x","home_team_y"], axis=1)
-            temp = temp[temp["match_num"] == Matches_list["match_num"].iloc[i]-1]
-            temp = temp.iloc[:, 7:]
-            temp.index = [Matches_list.index[i]]
-            
-            temp1 = MA_dict[Matches_list["team_name"].iloc[i+1]]
-            # quick fix, cant find why it happens
-            temp1['home_team'] = temp1['home_team_y']
-            temp1 = temp1.drop(["home_team_x","home_team_y"], axis=1)
-            temp1 = temp1[temp1["match_num"] == Matches_list["match_num"].iloc[i+1]-1]
-            temp1 = temp1.iloc[:, 7:]
-            temp1.index = [Matches_list.index[i+1]]
-            # find the delta between the MA of each team (home-away)
-            temp2 = temp1 - temp
-            Predictions_data = pd.concat((Predictions_data, temp2))
-            
-        else:
-            # add empty lines to be sure of the size
-            Predictions_data = pd.concat(
-                (Predictions_data, pd.DataFrame
-                 (columns=Predictions_data.columns, index=[Matches_list.index[i]])))
-    
-    # Output is the data used to predict
-    Predictions_data = sm.add_constant(Predictions_data.sort_index())
-    # Out is the results
-    Result_vector = df_home["wl"].replace(["W","L"], [1,0]).sort_index()
-    # Index removed when dropping nan 
-    removed = Predictions_data.index.difference(Predictions_data.dropna().index)
-    # Output is the data used to predict cleared
-    Predictions_data_cleared = Predictions_data.dropna()
-    # Output is the results cleared
-    Result_vector_cleared = Result_vector.drop(removed)
-    
-    return Predictions_data, Result_vector, Predictions_data_cleared, Result_vector_cleared, Matches_list

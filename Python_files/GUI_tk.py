@@ -676,7 +676,7 @@ def GUI():
     
     Title_Bets01b = tk.Label(
         Bets01b, text="Betting predicitons", font=("Verdana", 22, "bold"))
-    Title_Bets01b.place(x=0, y=0, width=width_700, height=30)
+    Title_Bets01b.place(x=0, y=0, width=width_700, height=50)
     
     Title_Bets01c = tk.Label(
         Bets01b, 
