@@ -244,8 +244,8 @@ if __name__ == "__main__":
     num_sims = 5000
     # How the models behave with the odds
     money_results = Money_parallel(predicted_year, long_values, 
-                                   short_values, random_seed) 
-    graphics_money_ranks(money_results, long_values, short_values, num_sims)
+                                   short_values, num_sims, random_seed) 
+    graphics_money_ranks(money_results, long_values, short_values)
     
     # Not taking into account the odds but only the predictions %
     accurancy_df = Accuracy_parallel(predicted_year, long_values, short_values)
