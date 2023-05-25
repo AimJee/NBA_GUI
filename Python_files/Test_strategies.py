@@ -168,8 +168,8 @@ def graphics_money_ranks(dfs, Long, Short):
         cbar = fig3.colorbar(sc, cax=cbar_ax)
         cbar.set_label("Money")
         # Space between graph
-        fig3.subplots_adjust(left=0.5, right=1, bottom=0.5, top=0.5, 
-                             wspace=0.25, hspace=0.4)
+        fig3.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9, 
+                             wspace=0.25, hspace=0.2)
         plt.savefig(current_directory + "/Tests/Graphs_scatter_plots" + \
                     str(i+1) + ".png", dpi=300)
         # Show the plot

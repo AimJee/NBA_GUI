@@ -3,6 +3,7 @@ import pandas as pd
 import statsmodels.api as sm
 from GUI_data import get_year_data
 import os
+import matplotlib.pyplot as plt
 
 def simulate_money(Year_predicted, Long, Short, num_sims, seed=0):
     """
@@ -194,5 +195,90 @@ def simulate_accuracy(Year_predicted, Long, Short):
     counts_df["Sum"] = counts_df["Ones"] + counts_df["Zeros"]
     # Accurancy of betting
     counts_df["Accurancy"] = counts_df["Ones"]/counts_df["Sum"]
+    
+    
+    # Find the money won with the standard models
+    # Data of predicted year
+    _, _, Matches = get_year_data(Year_predicted, Long, Short)
+    # Find the Matches list of the year 
+    data_to_use1 = Matches[4].sort_values(
+        by=["team_name", "match_num"]).drop(["game_date", "home_team", "game_id"], 
+                                            axis=1)
+    
+    data_to_use1 = data_to_use1.reset_index()
+    data_to_use1 = data_to_use1.set_index(["team_name", "match_num"])    
+        
+    # Find the 2023 odds and merge it with the data_to_use1
+    # We end up with the odds with the right index
+    odds = pd.read_csv(current_directory + "/CSV_files/odds.csv")
+    odds["Team_name"].unique()
+    odds[["match_num", "team_name"]] = odds[["Match_num", "Team_name"]]
+    odds = odds.drop(["Match_num", "Team_name"], axis=1)
+    odds = odds[["match_num", "team_name", 
+                     "Money Line", "Location"]].set_index(
+                         ["team_name", "match_num"])
+    odds = odds.replace(["Home", "Away"], value=[1, 0])
+    odds_df = odds.merge(data_to_use1, left_index=True, 
+                             right_index=True, how='right')
+    odds_df = odds_df.set_index(["index"]).sort_index()
+    temp = odds_df[odds_df["Location"]==1].drop("Location", axis=1)
+    temp2 = odds_df[odds_df["Location"]==0].drop("Location", axis=1)
+    temp.columns = ["Money Line Home"]
+    temp2.columns = ["Money Line Away"]
+    odds_df = pd.concat([temp, temp2], axis=1)
+    Money_df_list = []
+
+    # Find parameters of last 3 years individually
+    for i in range(int(Year_predicted)-3, int(Year_predicted), 1):
+        # Data to get and regress
+        x, y, data = get_year_data(i, Long, Short)
+        Regr_result = sm.Logit(y, x).fit()
+        Predicts = Regr_result.predict(Matches[0])
+        # Each year are comparable
+        # Limits
+        
+        # go to closest integer
+        Predicts[(Predicts<0.5)] = 0
+        Predicts[(Predicts>=0.5)] = 1
+        new_col = []
+        Ind_pre = Predicts.index
+        for index, value in enumerate(Predicts):
+            try:
+                # If we didnt bet then we get 0
+                if np.isnan(value):
+                    new_col.append(0)
+                # If the bet is won then we get the odds minus 1
+                elif value == Matches[1].loc[Ind_pre[index]]:
+                    if value == 1:
+                        new_col.append(
+                            odds_df.loc[Ind_pre[index]]["Money Line Home"]-1)
+                    else:
+                        new_col.append(
+                            odds_df.loc[Ind_pre[index]]["Money Line Away"]-1)
+                    # If we only want the result and not the quote
+                    # elif val == y_result[k]:
+                        # new_col.append(1)
+                    # If the result is not available then we get 0
+                elif np.isnan(Matches[1].loc[Ind_pre[index]]) == np.nan:
+                    new_col.append(0)
+                # If we lose then we lose our bet
+                else:
+                    new_col.append(-1)
+            except:
+                print(Ind_pre[index])
+                    
+            # into the list
+            Money_df_list.append(sum(new_col))
+    # plot 
+    y_data = Money_df_list
+    x_data = Cols_name
+    
+    plt.scatter(range(len(x_data)), y_data)
+    plt.xticks(range(len(x_data)), x_data)
+    plt.xlabel('Models')
+    plt.ylabel('Money')
+    plt.title('Scatter Plot of Money won')
+    plt.savefig(current_directory + "/Tests/Graph_money")
+    plt.show()
     return counts_df, df_params
 
