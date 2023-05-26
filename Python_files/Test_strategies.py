@@ -154,7 +154,7 @@ def graphics_money_ranks(dfs, Long, Short):
             df = dfs[(i + Size*j)]
             # Create a figure and axis for scatter plot
             df["Total"] = df["Won"] + df["Lost"]
-            df = df[df["Total"] > 5]
+            df = df[df["Total"] > 20]
             df = df[df["Money"] > 0]
             x = df["Upper"]
             y = df["Lower"]
@@ -230,7 +230,7 @@ def Accuracy_parallel(Year_predicted, Long, Short):
     # Graphic
     plt.figure(figsize=(15, 10))
     plt.plot(counts_df_ord.index, counts_df_ord["Accuracy"]*100, 
-             color="black", s=50)
+             color="black")
     plt.xticks(counts_df_ord.index, rotation="vertical")
     plt.title(str(Year_predicted) + ": Models VS Accuracy")
     plt.ylabel("Accuracy in %")
@@ -238,8 +238,8 @@ def Accuracy_parallel(Year_predicted, Long, Short):
     plt.show()
     # Graphic
     plt.figure(figsize=(15, 10))
-    plt.scatter(money_df.index, money_df, color="black", s=50, linestyle="--")
-    plt.axhline(0, color="red")
+    plt.scatter(money_df.index, money_df, color="black", s=50)
+    plt.axhline(0, color="red", linestyle="--")
     plt.xticks(money_df.index, rotation="vertical")
     plt.title(str(Year_predicted) + ": Models VS Money")
     plt.ylabel("Money")
@@ -248,7 +248,7 @@ def Accuracy_parallel(Year_predicted, Long, Short):
     # Graphic  
     plt.figure(figsize=(15,10))
     plt.scatter(counts_df["Accuracy"]*100, money_df, color="black", s=50)
-    plt.axhline(0, color="red")
+    plt.axhline(0, color="red", linestyle="--")
     plt.title(str(Year_predicted) + ": Accuracy VS Money")
     plt.ylabel("Money")
     plt.xlabel("Accuracy")
@@ -256,11 +256,11 @@ def Accuracy_parallel(Year_predicted, Long, Short):
     X = sm.add_constant(counts_df["Accuracy"]*100)
     results = sm.OLS(money_df, X).fit()
     regression_line = results.predict(X)
-    plt.plot(counts_df["Accuracy"], regression_line, color="blue")
+    plt.plot(counts_df["Accuracy"]*100, regression_line, color="blue")
     
     plt.savefig(current_directory + "/Tests/Graphs_relation_money_accuracy.png", dpi=300)
     plt.show()
-    return counts_df, df_params
+    return counts_df, df_params, money_df
 
 if __name__ == "__main__":
     """
@@ -269,10 +269,10 @@ if __name__ == "__main__":
     start = time.time()
     # Parameters
     predicted_year = 2023
-    long_values = [10, 20, 30, 50]
+    long_values = [10, 20, 30]
     short_values = [3, 5]
     random_seed = 0
-    num_sims = 10
+    num_sims = 1000
     # How the models behave with the odds
     money_results = Money_parallel(predicted_year, long_values, 
                                    short_values, num_sims, random_seed) 

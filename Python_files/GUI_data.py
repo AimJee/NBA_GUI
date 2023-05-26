@@ -16,7 +16,6 @@ import threading
 import statsmodels.api as sm
 import os
 
-
 def Stats_Seasons():
     """
     This function is used to scratch data from a website.
@@ -822,7 +821,7 @@ def Data_predictions(Entry_season, Length_long=20, Length_short=3):
     
     return Predictions_data, Result_vector, Predictions_data_cleared, Result_vector_cleared, Matches_list
        
-def Predict_df(Year_predicted, Long=10, Short=5, Upper_B=0.5, Lower_B=0.5): 
+def Predict_df(Year_predicted, Long=20, Short=5, Upper_B=0.5, Lower_B=0.5): 
     """
     This function predicts the outcomes of the matches of the season 
     Year_predicted-1-Year_predicted (2022-2023 for ex)

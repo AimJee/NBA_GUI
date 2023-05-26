@@ -127,22 +127,23 @@ def simulate_money(Year_predicted, Long, Short, num_sims, seed=0):
 
 def simulate_accuracy(Year_predicted, Long, Short):
     """
-    Test the accuracy of the 18 models 
+    Test the accuracy of the 18 models
     """
     Cols_name = []
     Predictions = []
     Parameters = []
+    Money_df = pd.DataFrame()
     current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
     for k in range(int(Year_predicted)-3, int(Year_predicted), 1):
         # Data of predicted year
-        _, _, Matches = get_year_data(Year_predicted, Long, Short)    
+        _, _, Matches = get_year_data(Year_predicted, Long, Short)
         # Data to get and regress
         x, y, data = get_year_data(k, Long, Short)
         Regr_result = sm.Logit(y, x).fit(cov_type="HC3")
-        
+
         # Perform White's test for heteroscedasticity
         # white_test = het_white(Regr_result.resid_dev, Regr_result.model.exog)
-        
+
         Parameters.append(Regr_result.params)
         Names = Matches[0].columns.tolist()
         # Save result
@@ -150,15 +151,15 @@ def simulate_accuracy(Year_predicted, Long, Short):
                   str(Long) + "_" + str(Short) + ".txt", 'w') as f:
             f.write(Regr_result.summary(
                 xname=Names).as_text())
-            
+
         #with open(current_directory + '/Tests/het_white_result_' + str(k) + \
         #          '_' + str(Long) + '_' + str(Short) + '.txt', 'w') as f:
         #    f.write("HetWhite Test Result\n")
             #f.write("LM Statistic: {}\n".format(white_test[0]))
             #f.write("LM-Test p-value: {}\n".format(white_test[1]))
             #f.write("F-Statistic: {}\n".format(white_test[2]))
-            #f.write("F-Test p-value: {}\n".format(white_test[3]))     
-        
+            #f.write("F-Test p-value: {}\n".format(white_test[3]))
+
         # Only predicts if data is not nan
         Predicts = Regr_result.predict(Matches[0])
         Cols_name.append(str(k)+"_"+str(Long)+"_"+str(Short))
@@ -178,59 +179,40 @@ def simulate_accuracy(Year_predicted, Long, Short):
             ((Predicts[non_nan_mask] == 0) & (Matches[1][non_nan_mask] == 0))
         # add to the list
         Predictions.append(result)
-        
-    # into a df
-    df = pd.DataFrame(Predictions).T
-    df_params = pd.DataFrame(Parameters).T
-    df_params.columns = Cols_name
-    df_params.index = Matches[0].columns
-    df.columns = Cols_name
-    # counts the bets won and lost
-    ones_counts = df.fillna(0).astype(int).sum()
-    zeros_counts = df.fillna(1).astype(int).eq(0).sum()
-    counts_df = pd.concat([ones_counts, zeros_counts], 
-                          axis=1, keys=["Ones", "Zeros"])
-    # total bet 
-    counts_df["Sum"] = counts_df["Ones"] + counts_df["Zeros"]
-    # Accuracy of betting
-    counts_df["Accuracy"] = counts_df["Ones"]/counts_df["Sum"]
-    
-    
-    # Find the money won with the standard models
-    # Data of predicted year
-    _, _, Matches = get_year_data(Year_predicted, Long, Short)
-    # Find the Matches list of the year 
-    data_to_use1 = Matches[4].sort_values(
-        by=["team_name", "match_num"]).drop(["game_date", "home_team", "game_id"], 
-                                            axis=1)
-    
-    data_to_use1 = data_to_use1.reset_index()
-    data_to_use1 = data_to_use1.set_index(["team_name", "match_num"])    
-        
-    # Find the 2023 odds and merge it with the data_to_use1
-    # We end up with the odds with the right index
-    odds = pd.read_csv(current_directory + "/CSV_files/odds.csv")
-    odds["Team_name"].unique()
-    odds[["match_num", "team_name"]] = odds[["Match_num", "Team_name"]]
-    odds = odds.drop(["Match_num", "Team_name"], axis=1)
-    odds = odds[["match_num", "team_name", 
+
+        # Find the money won with the standard models
+        # Data of predicted year
+        _, _, Matches = get_year_data(Year_predicted, Long, Short)
+        # Find the Matches list of the year
+        data_to_use1 = Matches[4].sort_values(
+            by=["team_name", "match_num"]).drop(["game_date", "home_team", "game_id"],
+                                                axis=1)
+
+        data_to_use1 = data_to_use1.reset_index()
+        data_to_use1 = data_to_use1.set_index(["team_name", "match_num"])
+
+        # Find the 2023 odds and merge it with the data_to_use1
+        # We end up with the odds with the right index
+        odds = pd.read_csv(current_directory + "/CSV_files/odds.csv")
+        odds["Team_name"].unique()
+        odds[["match_num", "team_name"]] = odds[["Match_num", "Team_name"]]
+        odds = odds.drop(["Match_num", "Team_name"], axis=1)
+        odds = odds[["match_num", "team_name",
                      "Money Line", "Location"]].set_index(
-                         ["team_name", "match_num"])
-    odds = odds.replace(["Home", "Away"], value=[1, 0])
-    odds_df = odds.merge(data_to_use1, left_index=True, 
+            ["team_name", "match_num"])
+        odds = odds.replace(["Home", "Away"], value=[1, 0])
+        odds_df = odds.merge(data_to_use1, left_index=True,
                              right_index=True, how='right')
-    odds_df = odds_df.set_index(["index"]).sort_index()
-    temp = odds_df[odds_df["Location"]==1].drop("Location", axis=1)
-    temp2 = odds_df[odds_df["Location"]==0].drop("Location", axis=1)
-    temp.columns = ["Money Line Home"]
-    temp2.columns = ["Money Line Away"]
-    odds_df = pd.concat([temp, temp2], axis=1)
-    Money_df = pd.DataFrame()
-    # Find parameters of last 3 years individually
-    for i in range(int(Year_predicted)-3, int(Year_predicted), 1):
+        odds_df = odds_df.set_index(["index"]).sort_index()
+        temp = odds_df[odds_df["Location"]==1].drop("Location", axis=1)
+        temp2 = odds_df[odds_df["Location"]==0].drop("Location", axis=1)
+        temp.columns = ["Money Line Home"]
+        temp2.columns = ["Money Line Away"]
+        odds_df = pd.concat([temp, temp2], axis=1)
+
         Money = []
         # Data to get and regress
-        x, y, data = get_year_data(i, Long, Short)
+        x, y, data = get_year_data(k, Long, Short)
         Regr_result = sm.Logit(y, x).fit()
         Predicts = Regr_result.predict(Matches[0])
         # Each year are comparable
@@ -263,11 +245,28 @@ def simulate_accuracy(Year_predicted, Long, Short):
                     new_col.append(-1)
             except:
                 print(Ind_pre[index])
-                    
+
         # into the list
         Money.append(sum(new_col))
         Money_df = pd.concat([Money_df, pd.DataFrame(Money)])
+
+    # into a df
+    df = pd.DataFrame(Predictions).T
+    df_params = pd.DataFrame(Parameters).T
+    df_params.columns = Cols_name
+    df_params.index = Matches[0].columns
+    df.columns = Cols_name
+    # counts the bets won and lost
+    ones_counts = df.fillna(0).astype(int).sum()
+    zeros_counts = df.fillna(1).astype(int).eq(0).sum()
+    counts_df = pd.concat([ones_counts, zeros_counts],
+                          axis=1, keys=["Ones", "Zeros"])
+    # total bet
+    counts_df["Sum"] = counts_df["Ones"] + counts_df["Zeros"]
+    # Accuracy of betting
+    counts_df["Accuracy"] = counts_df["Ones"]/counts_df["Sum"]
+
     Money_df.index = Cols_name
-   
+
     return counts_df, df_params, Money_df
 
