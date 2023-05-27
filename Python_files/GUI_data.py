@@ -220,7 +220,7 @@ def load_matches(Season: int, Debut_date: datetime, End_date: datetime):
     Note that to allow the user to use the database while the function is
     running, the function uses threading. This is why the function scratching
     has been created
-    """
+    """ 
     current_directory = os.path.dirname(os.path.dirname(os.path.abspath('__file__')))
     relative_path = os.path.join(current_directory, 'CSV_files')
     start_time = time.time()
@@ -315,18 +315,18 @@ def load_matches(Season: int, Debut_date: datetime, End_date: datetime):
                         month = date[1].split(" ")[0]
                         month = int(list(calendar.month_abbr).index(month))
                         day = int(date[1].split(" ")[1])
-                        # No need of passed data
-                        # We need the match of tomorrow to predict but not after
-                        if datetime.datetime(year, month, day) > datetime.timedelta(days=1) + End_date:
-                            break
-                        # Month is in string format on the webstite -> into integer
-                        month = '%02d' % month
-                        # day as to be 02 and not just 2
-                        day = '%02d' % day
-                        # Add the abrv of the home_team (for url purpose)
-                        abrv = str(dict_team[home_team])
-                        # add into the data list
-                        data.append((year, month, day, away_team, home_team, abrv))
+                        if datetime.datetime(year, month, day) >= Debut_date:
+                            # We need the match of tomorrow to predict but not after
+                            if datetime.datetime(year, month, day) > datetime.timedelta(days=1) + End_date:
+                                break
+                            # Month is in string format on the webstite -> into integer
+                            month = '%02d' % month
+                            # day as to be 02 and not just 2
+                            day = '%02d' % day
+                            # Add the abrv of the home_team (for url purpose)
+                            abrv = str(dict_team[home_team])
+                            # add into the data list
+                            data.append((year, month, day, away_team, home_team, abrv))
                     # dont loop if it works
                     break
                 except requests.exceptions.RequestException:
@@ -355,8 +355,11 @@ def load_matches(Season: int, Debut_date: datetime, End_date: datetime):
        
         for j in trange(len(data), unit="items", unit_scale=True):
             # The future matches doesnt have to be looked up
-            if datetime.datetime(
-                    int(data[j][0]), int(data[j][1]), int(data[j][2])) <= End_date:
+            cond1 = (datetime.datetime(
+                int(data[j][0]), int(data[j][1]), int(data[j][2])) <= End_date)
+            cond2 = (datetime.datetime(
+                int(data[j][0]), int(data[j][1]), int(data[j][2])) >= Debut_date)
+            if cond1 == True and cond2 == True:
                 # respect the 20 requests by minute
                 time.sleep(2.4)
                 text = str(data[j][0]) + data[j][1] + data[j][2] + "0" + data[j][5] +".html"
@@ -404,6 +407,10 @@ def load_matches(Season: int, Debut_date: datetime, End_date: datetime):
                         failed_urls2.append(url)
                         time.sleep(2.4)
                         continue
+            else:
+                # progress bar update
+                progress_bar["value"] = j
+                progress_window.update()
                 
         progress_bar["value"] = len(data)+1
         progress_window.update()
@@ -773,7 +780,7 @@ def Data_predictions(Entry_season, Length_long=20, Length_short=3):
     Matches_list = Matches_list.sort_values(by=["game_id", "home_team"])
     # Predict
     Predictions_data = pd.DataFrame(
-        columns=cols_ma_long+cols_ma_short)
+        columns=cols_ma_long+cols_ma_short + ["wl_pct"])
 
     for i in range(0, len(Matches_list), 2):
         # condition for predicting, we need Lenght long matches
@@ -807,7 +814,7 @@ def Data_predictions(Entry_season, Length_long=20, Length_short=3):
             Predictions_data = pd.concat(
                 (Predictions_data, pd.DataFrame
                  (columns=Predictions_data.columns, index=[Matches_list.index[i]])))
-    
+
     # Output is the data used to predict
     Predictions_data = sm.add_constant(Predictions_data.sort_index())
     # Out is the results
@@ -836,23 +843,37 @@ def Predict_df(Year_predicted, Long=20, Short=5, Upper_B=0.5, Lower_B=0.5):
     relative_path = os.path.join(current_directory, 'CSV_files')
     answer = askyesno(title="Predictions?",
                       message="Do you want to predict the outcomes ? It could take up to 1 min")
-
+    
     # If you want to update :
     if answer == True:
+
         # Cols name
         Cols_name = []
         # Predictions based on 3 individual years
         df = pd.DataFrame()
         # Data of predicted year
-        Data_to_use, y_result, Matches = get_year_data(Year_predicted, Long, Short)    
-        
+        _, _, Matches = get_year_data(Year_predicted, Long, Short)    
+
         # Find parameters of last 3 years individually
         for i in range(int(Year_predicted)-3, int(Year_predicted), 1):
             # Data to get and regress
             x, y, data = get_year_data(i, Long, Short)
+    
             Regr_result = sm.Logit(y, x).fit(cov_type="HC3")
             # Only predicts if data is not nan
-            Predicts = Regr_result.predict(Matches[0])
+            regressors = Matches[0]
+            # Apply mask to identify rows with '1, nan, nan'
+            mask = (regressors.iloc[:, 0] == 1) & regressors.iloc[:, 1:].isna().all(axis=1)
+            # Create a copy of regressors to modify the values
+            regressors_copy = regressors.copy()
+            # Set rows with '1, nan, nan' to nan
+            regressors_copy.loc[mask, :] = np.nan
+            # Make predictions
+            Predicts = np.empty(len(regressors))
+            Predicts[:] = np.nan
+            # Compute predictions for non-nan rows
+            non_nan_mask = ~regressors_copy.isna().any(axis=1)
+            Predicts[non_nan_mask] = Regr_result.predict(regressors_copy[non_nan_mask])
             Cols_name.append(i)
             # Limits
             Upper = Upper_B
@@ -861,12 +882,11 @@ def Predict_df(Year_predicted, Long=20, Short=5, Upper_B=0.5, Lower_B=0.5):
             Predicts[(Predicts<Lower)] = 0
             Predicts[(Predicts>Upper)] = 1
             Predicts[((Predicts<=Upper) & (Predicts>=Lower))] = np.nan
-            df = pd.concat([df, Predicts], axis=1)
+            df = pd.concat([df, pd.DataFrame(Predicts)], axis=1)
     
         # into a df
         df.columns = Cols_name
         df.index = Matches[0].index
-        
         # add more information
         df_comp = pd.read_csv(relative_path + "/game.csv")
         df_comp = df_comp[df_comp["season_id"]==Year_predicted-1][
@@ -886,8 +906,9 @@ def Predict_df(Year_predicted, Long=20, Short=5, Upper_B=0.5, Lower_B=0.5):
         
         df = df.replace([1, 0, np.nan], ["Home", "Away", "/"])
         df.to_csv(relative_path + "/predictions.csv")
-    
+
     return df
+
 
 def get_year_data(year, Long, Short):
     """ 
@@ -899,3 +920,4 @@ def get_year_data(year, Long, Short):
     x = np.asarray(data[2], dtype=float)
     y = np.asarray(data[3])
     return x, y, data
+

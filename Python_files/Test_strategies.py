@@ -272,7 +272,7 @@ if __name__ == "__main__":
     long_values = [10, 20, 30]
     short_values = [3, 5]
     random_seed = 0
-    num_sims = 1000
+    num_sims = 10000
     # How the models behave with the odds
     money_results = Money_parallel(predicted_year, long_values, 
                                    short_values, num_sims, random_seed) 
