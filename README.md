@@ -11,4 +11,3 @@ To run the tests, simply run Test_strategies.py
 To start optimising the combinations, simply run Optimization.py
 The GUI can be outdated if the sites from which we get the data change. The first csv file called game.csv comes from the brilliant https://www.kaggle.com/datasets/wyattowalsh/basketball. Thanks Wyatt !
 
-Be careful, it's dangerous ! 
